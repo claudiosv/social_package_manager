@@ -1,0 +1,10 @@
+services:
+  bootstrap:
+    build: .
+    ports:
+      - "4222:4222"
+    entrypoint: "dhtnode -b localhost -p 4222 -s"
+  client:
+    depends_on:
+      - "bootstrap"
+    build: .

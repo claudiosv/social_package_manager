@@ -1,13 +1,14 @@
 import opendht as dht
 import hashlib
 import msgpack
+import argparse
 
 node = dht.DhtRunner()
 node.run()
 
 # Join the network through any running node,
 # here using a known bootstrap node.
-node.bootstrap("bootstrap.jami.net", "4222")
+node.bootstrap("bootstrap", "4222")
 unique_key = hashlib.md5("cvspiess@ucdavis.edu".encode('utf-8')).hexdigest()
 data_dict  = {
     "name": "Claudio",
