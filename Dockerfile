@@ -42,4 +42,4 @@ RUN poetry config virtualenvs.create false \
 # Creating folders, and files for a project:
 COPY . /code
 
-ENTRYPOINT ["poetry", "run", "python", "example.py"]
+ENTRYPOINT ["poetry", "run", "python", "example.py", "pip", "install", "numpy"]
