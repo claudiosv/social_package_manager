@@ -132,3 +132,13 @@ if len(args) > 2 and args[1] == 'install':
         subprocess.run(list(args))
     else:
         print("Installation aborted")
+
+# TODO:
+"""
+- It needs a name: spm (social package manager) ?
+- The packages are hard coded. When a user runs spm install x, it should add x to their hash table entry
+- The calculation sucks and isn't correct, it needs to weight the amount of friends and friends of friends.
+- Github stats should weigh less
+- the ui could be improved
+- we need a demo that shows how it works across several machines
+"""
