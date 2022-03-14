@@ -125,13 +125,18 @@ parser = argparse.ArgumentParser()
 parser.add_argument('args', nargs='+')
 args = parser.parse_args().args
 print(args)
-if len(args) > 2 and args[1] == 'install':
-    question = lambda q: input(q).lower().strip()[0] == "y"
-    if question(f"The package '{args[2]}' has a social score of {social_scores[args[2]]}. Are you sure you want to proceed?"):
-        print("Installing package:")
-        subprocess.run(list(args))
-    else:
-        print("Installation aborted")
+if args[0] == 'pip':
+    if len(args) > 2 and args[1] == 'install':
+        question = lambda q: input(q).lower().strip()[0] == "y"
+        if question(f"The package '{args[2]}' has a social score of {social_scores[args[2]]}. Are you sure you want to proceed?"):
+            print("Installing package:")
+            subprocess.run(list(args))
+        else:
+            print("Installation aborted")
+elif args[0] in ('npm', 'yarn'):
+    print("NPM support is next")
+else:
+    print("This package manager is not supported yet. Sorry.")
 
 # TODO:
 """
