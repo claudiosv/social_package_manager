@@ -21,69 +21,109 @@ data_dict  = {
         "jsonrpc",
         "pandas"
     ],
-    "friends": [ hashlib.md5("stefanbroeger@ucdavis.edu".encode('utf-8')).hexdigest(),
-    hashlib.md5("david@ucdavis.edu".encode('utf-8')).hexdigest() ]
+    "friends": [
+        hashlib.md5("stefanbroecker@ucdavis.edu".encode('utf-8')).hexdigest(),
+        hashlib.md5("david@ucdavis.edu".encode('utf-8')).hexdigest()
+    ]
 }
 # print("Putting dict on DHT: ", data_dict)
 packed_dict = msgpack.packb(data_dict)
 node.put(dht.InfoHash.get(unique_key), dht.Value(packed_dict))
 
+new_dict = {
+    "friends": [
+        hashlib.md5("another_friend".encode('utf-8')).hexdigest()
+    ]
+}
+packed_dict = msgpack.packb(new_dict)
+node.put(dht.InfoHash.get(unique_key), dht.Value(packed_dict))
+
 # Stefan
-uunique_key = hashlib.md5("stefanbroeger@ucdavis.edu".encode('utf-8')).hexdigest()
+uunique_key = hashlib.md5("stefanbroecker@ucdavis.edu".encode('utf-8')).hexdigest()
 data_dict  = {
-        "name": "Stefan",
+    "name": "Stefan",
     "packages": [
         "rich",
         "jsonrpc",
         "matplotlib"
     ],
-    "friends": [ hashlib.md5("cvspiess@ucdavis.edu".encode('utf-8')).hexdigest(),
-    hashlib.md5("david@ucdavis.edu".encode('utf-8')).hexdigest() ]
+    "friends": [
+        hashlib.md5("cvspiess@ucdavis.edu".encode('utf-8')).hexdigest(),
+        hashlib.md5("david@ucdavis.edu".encode('utf-8')).hexdigest(),
+        hashlib.md5("wu@ucdavis.edu".encode('utf-8')).hexdigest()
+    ]
 }
 # print("Putting dict on DHT: ", data_dict)
 packed_dict = msgpack.packb(data_dict)
 node.put(dht.InfoHash.get(uunique_key), dht.Value(packed_dict))
 
-# Stefan
+# David
 uunique_key = hashlib.md5("david@ucdavis.edu".encode('utf-8')).hexdigest()
 data_dict  = {
-        "name": "David",
+    "name": "David",
     "packages": [
         "plotly",
         "requests",
         "matplotlib"
     ],
-    "friends": [ hashlib.md5("cvspiess@ucdavis.edu".encode('utf-8')).hexdigest() ]
+    "friends": [ 
+        hashlib.md5("cvspiess@ucdavis.edu".encode('utf-8')).hexdigest() 
+    ]
 }
 # print("Putting dict on DHT: ", data_dict)
 packed_dict = msgpack.packb(data_dict)
 node.put(dht.InfoHash.get(uunique_key), dht.Value(packed_dict))
 
-
-
-
+# Dr. Wu
+wunique_key = hashlib.md5("wu@ucdavis.edu".encode('utf-8')).hexdigest()
+data_dict  = {
+    "name": "Felix Wu",
+    "packages": [
+        "plotly",
+        "requests",
+        "matplotlib"
+    ],
+    "friends": [ 
+        hashlib.md5("cvspiess@ucdavis.edu".encode('utf-8')).hexdigest() 
+    ]
+}
+# print("Putting dict on DHT: ", data_dict)
+packed_dict = msgpack.packb(data_dict)
+node.put(dht.InfoHash.get(wunique_key), dht.Value(packed_dict))
 
 # Retrieve
-# results = node.get(dht.InfoHash.get(unique_key))[0]
-# #for r in results:
-# first = msgpack.unpackb(results.data)
-# print("Found entry: ", first)
-# print("Searching for friends")
-friends_visited = set()
+results = node.get(dht.InfoHash.get(unique_key))
+for r in results:
+    first = msgpack.unpackb(r.data)
+    print("Found entry: ", first)
+    print("Searching for friends")
+    friends = first["friends"]
+    for f in friends:
+        result = node.get(dht.InfoHash.get(f))[0]
+        friend_dict = msgpack.unpackb(result.data)
+        print(friend_dict)
 
-def find_friends(friends: list, state: list, depth: int, friends_visited: set) -> dict:
+
+def find_friends(root: str, state: list, depth: int, target_depth: int, friends_visited: set) -> dict:
     state = []
-    for friend in friends:
-        if not friend in friends_visited:
-            print(f"Added {friend}")
-            friends_visited.add(friend)
-            results = node.get(dht.InfoHash.get(friend))
-            if results:
-                first = msgpack.unpackb(results[0].data)
-                first['depth'] = depth
-                # print("Found friend:", first)
-                state.append(first)
-                state.extend(find_friends(first['friends'], state, depth+1, friends_visited))
+    friends_visited.add(root)
+    results = node.get(dht.InfoHash.get(root))
+    if results:
+        to_check = []
+        r = msgpack.unpackb(results[0].data)
+        friends = r["friends"]
+        for friend in friends:
+            if not friend in friends_visited:
+                friends_visited.add(friend)
+                to_check.append(friend)
+                inner_results = node.get(dht.InfoHash.get(friend))
+                if results:
+                    inner_r = msgpack.unpackb(inner_results[0].data)
+                    inner_r["depth"] = depth
+                    state.append(inner_r)
+        if depth < target_depth:
+            for friend in to_check:
+                state.extend(find_friends(friend, state, depth + 1, target_depth, friends_visited))
     return state
 
 def fetch_pypi(package: str) -> Optional[str]:
@@ -106,31 +146,45 @@ def fetch_github(owner: str, project: str) -> tuple[int, int]:
         github_cache[(owner, project)] = json_response['stargazers_count'], json_response['forks_count']
     return github_cache[(owner, project)]
 
-friends = find_friends([unique_key], dict(), 0, friends_visited)
-# print(friends)
+def generateScore(package: str, owner: str):
+    friends = find_friends(owner, [], 1, 2, set())
+    d = 1000
+    ct = 0.0
+    for f in friends:
+        if package in f["packages"]:
+            ct += 1/f["depth"]
+            d = min(f["depth"], d)
+    package_git = fetch_pypi(package).split('/')
+    stars, forks = fetch_github(package_git[-2], package_git[-1])
+    if ct > 0.0:
+        return ((ct * 1/d), (forks * stars))
+    else:
+        return (0, (forks * stars))
+
+
 # https://pypi.org/pypi/sampleproject/json
 
 social_scores = {'numpy': 89/100}
-print(friends)
+# print(friends)
 
-for friend in friends:
-    for package in friend['packages']:
-        package_git = fetch_pypi(package).split('/')
-        print(package_git)
-        stars, forks = fetch_github(package_git[-2], package_git[-1])
-        social_scores[package] = friend['depth'] * forks * stars
-# print(social_scores)
+# for friend in friends:
+#     for package in friend['packages']:
+#         package_git = fetch_pypi(package).split('/')
+#         stars, forks = fetch_github(package_git[-2], package_git[-1])
+#         social_scores[package] = friend['depth'] * forks * stars
 
 parser = argparse.ArgumentParser()
 parser.add_argument('args', nargs='+')
 args = parser.parse_args().args
-print(args)
 if args[0] == 'pip':
     if len(args) > 2 and args[1] == 'install':
+        package = args[2]
+        social_score, github_score = generateScore(package, wunique_key)
         question = lambda q: input(q).lower().strip()[0] == "y"
-        if question(f"The package '{args[2]}' has a social score of {social_scores[args[2]]}. Are you sure you want to proceed?"):
+        if question(f"The package '{args[2]}' has a social score of {social_score} and a github score of {github_score}. Are you sure you want to proceed?"):
             print("Installing package:")
-            subprocess.run(list(args))
+            # subprocess.run(list(args))
+            # TODO: add installed package to the user's DHT entry
         else:
             print("Installation aborted")
 elif args[0] in ('npm', 'yarn'):
