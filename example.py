@@ -30,14 +30,6 @@ data_dict  = {
 packed_dict = msgpack.packb(data_dict)
 node.put(dht.InfoHash.get(unique_key), dht.Value(packed_dict))
 
-new_dict = {
-    "friends": [
-        hashlib.md5("another_friend".encode('utf-8')).hexdigest()
-    ]
-}
-packed_dict = msgpack.packb(new_dict)
-node.put(dht.InfoHash.get(unique_key), dht.Value(packed_dict))
-
 # Stefan
 uunique_key = hashlib.md5("stefanbroecker@ucdavis.edu".encode('utf-8')).hexdigest()
 data_dict  = {
@@ -99,7 +91,7 @@ for r in results:
     print("Searching for friends")
     friends = first["friends"]
     for f in friends:
-        result = node.get(dht.InfoHash.get(f))[0]
+        result = node.get(dht.InfoHash.get(f))[-1]
         friend_dict = msgpack.unpackb(result.data)
         print(friend_dict)
 
@@ -110,7 +102,7 @@ def find_friends(root: str, state: list, depth: int, target_depth: int, friends_
     results = node.get(dht.InfoHash.get(root))
     if results:
         to_check = []
-        r = msgpack.unpackb(results[0].data)
+        r = msgpack.unpackb(results[-1].data)
         friends = r["friends"]
         for friend in friends:
             if not friend in friends_visited:
@@ -118,13 +110,22 @@ def find_friends(root: str, state: list, depth: int, target_depth: int, friends_
                 to_check.append(friend)
                 inner_results = node.get(dht.InfoHash.get(friend))
                 if results:
-                    inner_r = msgpack.unpackb(inner_results[0].data)
+                    inner_r = msgpack.unpackb(inner_results[-1].data)
                     inner_r["depth"] = depth
                     state.append(inner_r)
         if depth < target_depth:
             for friend in to_check:
                 state.extend(find_friends(friend, state, depth + 1, target_depth, friends_visited))
     return state
+
+def updateDHT(package: str, owner: str):
+    result = node.get(dht.InfoHash.get(owner))
+    if result:
+        unpacked = msgpack.unpackb(result[-1].data)
+        unpacked["packages"].append(package)
+        packed_dict = msgpack.packb(unpacked)
+        node.put(dht.InfoHash.get(owner), dht.Value(packed_dict))
+
 
 def fetch_pypi(package: str) -> Optional[str]:
     response = requests.get(f"https://pypi.org/pypi/{package}/json")
@@ -181,16 +182,19 @@ if args[0] == 'pip':
         package = args[2]
         social_score, github_score = generateScore(package, wunique_key)
         question = lambda q: input(q).lower().strip()[0] == "y"
-        if question(f"The package '{args[2]}' has a social score of {social_score} and a github score of {github_score}. Are you sure you want to proceed?"):
+        if question(f"The package '{args[2]}' has a social score of {social_score} and a github score of {github_score}. Are you sure you want to proceed? "):
             print("Installing package:")
             # subprocess.run(list(args))
-            # TODO: add installed package to the user's DHT entry
+            updateDHT(package, wunique_key)
         else:
             print("Installation aborted")
 elif args[0] in ('npm', 'yarn'):
     print("NPM support is next")
 else:
     print("This package manager is not supported yet. Sorry.")
+
+results = node.get(dht.InfoHash.get(wunique_key))
+print(msgpack.unpackb(results[-1].data))
 
 # TODO:
 """
