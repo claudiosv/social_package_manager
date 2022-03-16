@@ -40,6 +40,6 @@ RUN poetry config virtualenvs.create false \
   && poetry install --no-interaction --no-ansi
 
 # Creating folders, and files for a project:
-COPY . /code
+# COPY . /code
 
 ENTRYPOINT ["poetry", "run", "python", "example.py", "pip", "install", "numpy"]
