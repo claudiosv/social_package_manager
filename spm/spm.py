@@ -189,6 +189,14 @@ def fetch_github(owner: str, project: str) -> tuple[int, int]:
         github_cache[(owner, project)] = json_response['stargazers_count'], json_response['forks_count']
     return github_cache[(owner, project)]
 
+def updateDHT(package: str, owner: str):
+    result = node.get(dht.InfoHash.get(owner))
+    if result:
+        unpacked = msgpack.unpackb(result[-1].data)
+        unpacked["packages"].append(package)
+        packed_dict = msgpack.packb(unpacked)
+        node.put(dht.InfoHash.get(owner), dht.Value(packed_dict))
+
 def generateScore(package: str, owner: str):
     friends = find_friends(owner, [], 1, 2, set())
     d = 1000
@@ -244,7 +252,7 @@ def main():
                     friend_dict = msgpack.unpackb(result.data)
                     # print(friend_dict)
 
-            social_score, github_score, stars, forks = generateScore(package, wunique_key)
+            social_score, github_score, stars, forks = generateScore(package, my_unique_key)
             social_score = social_score * 100
             question = lambda q: input(q).lower().strip()[0] == "y"
             console.print(":sparkles:", f"The package '{package}' has a social score of {social_score:,} and a [purple] Github[/purple] score of {github_score:,}.")
@@ -258,12 +266,9 @@ def main():
             console.print(f"[purple]  {stars:,} stars on Github")
             if question("Are you sure you want to proceed? Y/n"):
                 console.print(":sparkles:", f"Installing package '{package}':")
-                if not package in data_dict['packages']:
-                    data_dict['packages'].append(package)
-                    packed_dict = msgpack.packb(data_dict)
-                    node.put(dht.InfoHash.get(my_unique_key), dht.Value(packed_dict))
+                updateDHT(package, my_unique_key)
                 # subprocess.run(list(args))
-                # TODO: add installed package to the user's DHT entry
+                
             else:
                 console.print(":sparkles:", "Installation aborted")
         else:
