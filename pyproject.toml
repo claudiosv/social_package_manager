@@ -7,6 +7,8 @@ authors = ["Claudio Spiess <claudiosv@users.noreply.github.com>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 Cython = "^0.29.28"
+pytermgui = "^4.0.1"
+rich = "^12.0.0"
 
 [tool.poetry.dev-dependencies]
 
