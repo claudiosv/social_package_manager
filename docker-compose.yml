@@ -1,10 +1,19 @@
 services:
   bootstrap:
+    # name: felix
     build: .
     ports:
       - "4222:4222"
     entrypoint: "dhtnode -b localhost -p 4222 -s"
-  client:
+  felix:
+    # name: felix
     depends_on:
       - "bootstrap"
     build: .
+    entrypoint: "/bin/bash"
+  claudio:
+    # name: claudio
+    depends_on:
+      - "bootstrap"
+    build: .
+    entrypoint: "/bin/bash"
