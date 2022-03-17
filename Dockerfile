@@ -1,5 +1,7 @@
 FROM python:latest
 
+#:3.10.3-slim-bullseye
+
 ENV PYTHONFAULTHANDLER=1 \
   PYTHONUNBUFFERED=1 \
   PYTHONHASHSEED=random \
@@ -41,5 +43,5 @@ RUN poetry config virtualenvs.create false \
 
 # Creating folders, and files for a project:
 # COPY . /code
-
+RUN alias spm="poetry run python spm/__main__.py"
 ENTRYPOINT ["poetry", "run", "python", "example.py", "pip", "install", "numpy"]

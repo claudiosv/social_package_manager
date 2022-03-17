@@ -1,19 +1,58 @@
+version: "3.9"
 services:
   bootstrap:
-    # name: felix
+    container_name: bootstrap
     build: .
+    expose:
+      - "4222"
     ports:
       - "4222:4222"
-    entrypoint: "dhtnode -b localhost -p 4222 -s"
+    # networks:
+    #   - ecs251
+    entrypoint: dhtnode -p 4222 -n 25100
+    stdin_open: true
+    tty: true
   felix:
-    # name: felix
+    container_name: felix
     depends_on:
       - "bootstrap"
+    expose:
+      - "4222"
     build: .
-    entrypoint: "/bin/bash"
+    entrypoint: /bin/bash
+    environment:
+      SPM_USER: wu@ucdavis.edu
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/code
   claudio:
-    # name: claudio
+    container_name: claudio
     depends_on:
       - "bootstrap"
+    expose:
+      - "4222"
     build: .
-    entrypoint: "/bin/bash"
+    entrypoint: /bin/bash
+    environment:
+      SPM_USER: cvspiess@ucdavis.edu
+    # networks:
+    #   - ecs251
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/code
+  david:
+    container_name: david
+    depends_on:
+      - "bootstrap"
+    expose:
+      - "4222"
+    build: .
+    entrypoint: /bin/bash
+    environment:
+      SPM_USER: david@ucdavis.edu
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/code
