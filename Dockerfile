@@ -43,5 +43,5 @@ RUN poetry config virtualenvs.create false \
 
 # Creating folders, and files for a project:
 # COPY . /code
-RUN alias spm="poetry run python spm/__main__.py"
+RUN echo "\nalias spm=\"poetry run python spm/__main__.py\"" >> ~/.bashrc
 ENTRYPOINT ["poetry", "run", "python", "example.py", "pip", "install", "numpy"]
